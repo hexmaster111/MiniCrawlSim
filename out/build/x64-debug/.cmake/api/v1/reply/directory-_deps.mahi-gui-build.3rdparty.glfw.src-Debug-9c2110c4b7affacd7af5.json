@@ -1,0 +1,45 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"out/build/x64-debug/_deps/mahi-gui-src/3rdparty/glfw/src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 247,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/glfw/src/glfw3.lib"
+			],
+			"targetId" : "glfw::@292da2318190b66a3baa",
+			"targetIndex" : 4,
+			"type" : "target"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "_deps/mahi-gui-build/3rdparty/glfw/src",
+		"source" : "out/build/x64-debug/_deps/mahi-gui-src/3rdparty/glfw/src"
+	}
+}
