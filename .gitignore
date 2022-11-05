@@ -9,3 +9,9 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+MiniCrawlSim/test/build/.ninja_deps
+MiniCrawlSim/test/build/.ninja_log
+MiniCrawlSim/test/build/imgui.ini
+MiniCrawlSim/test/build/MAHI.log
+MiniCrawlSim/test/build/MiniCrawlSim
+MiniCrawlSim/test/build/.cmake/api/v1/reply/index-2022-11-05T16-28-36-0577.json

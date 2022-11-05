@@ -1,11 +1,34 @@
 // MiniCrawlSim.cpp : Defines the entry point for the application.
 //
 
+// export LIBGL_ALWAYS_SOFTWARE = true
+
 #define WINDOWS 1
 
 #ifndef WINDOWS
 #include <Arduino.h>
 #endif
+
+struct GameObjectColor
+{
+    GameObjectColor(int r, int g, int b)
+    {
+        this->r = r;
+        this->g = g;
+        this->b = b;
+    }
+
+    GameObjectColor()
+    {
+        this->r = 0;
+        this->g = 0;
+        this->b = 0;
+    }
+
+    char r;
+    char g;
+    char b;
+};
 
 #if WINDOWS
 #include <vector>
@@ -56,34 +79,37 @@ public:
 
 class Debug_Display
 {
+
+private:
+    int m_height;
+    int m_width;
+
+    std::vector<std::vector<GameObjectColor>> *m_pixels;
+
 public:
-    struct Color
+    Debug_Display(int width, int height)
     {
-        Color(int r, int g, int b)
-        {
-            this->r = r;
-            this->g = g;
-            this->b = b;
-        }
-
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-    };
-
-    // TODO: Draw this to a window
-    void begin()
-    {
+        m_height = height;
+        m_width = width;
+        m_pixels = new std::vector<std::vector<GameObjectColor>>(width, std::vector<GameObjectColor>(height));
     }
 
-    void clear()
+    /// @brief Not using in the sim, just a placeholder to make the main thing happy
+    void clear() {}
+
+    /// @brief Not using in the sim, just a placeholder to make the main thing happy
+    void show() {}
+
+    std::vector<std::vector<GameObjectColor>> *get_current_display_state()
     {
+        return m_pixels;
     }
 
-    void show(){};
-
-    void setPixelColor(int row_col_to_index, Color color){};
-} pixels;
+    void set_pixel(int x, int y, GameObjectColor color)
+    {
+        (*m_pixels)[x][y] = color;
+    }
+} pixels(8, 32);
 
 static class ESP
 {
@@ -106,20 +132,6 @@ struct Location
 
     int x;
     int y;
-};
-
-struct GameObjectColor
-{
-    GameObjectColor(int r, int g, int b)
-    {
-        this->r = r;
-        this->g = g;
-        this->b = b;
-    }
-
-    char r;
-    char g;
-    char b;
 };
 
 enum class Direction
@@ -184,10 +196,10 @@ public:
     void set_is_player_passable(bool is_player_passable) { this->player_passable = is_player_passable; }
     level_item get_type() { return m_type; }
 
-    virtual Location *GetLocation() = 0;
+    virtual Location *get_location() = 0;
     /// @brief
     /// @return New color object
-    virtual GameObjectColor *GetColor() = 0;
+    virtual GameObjectColor *get_color() = 0;
 
     virtual void Interact(GameObject *interactor)
     {
@@ -217,8 +229,8 @@ private:
     {
         for (int i = 0; i < World_Game_Objects->size(); i++)
         {
-            if (World_Game_Objects->at(i)->GetLocation()->x == new_location.x &&
-                World_Game_Objects->at(i)->GetLocation()->y == new_location.y)
+            if (World_Game_Objects->at(i)->get_location()->x == new_location.x &&
+                World_Game_Objects->at(i)->get_location()->y == new_location.y)
             {
                 if (!World_Game_Objects->at(i)->IsPlayerPassable())
                 {
@@ -256,7 +268,7 @@ public:
         for (GameObject *game_object : *world_game_objects)
         {
             // Get the location of the object
-            Location *object_location = game_object->GetLocation();
+            Location *object_location = game_object->get_location();
             // Check if the object is around the player
             if (object_location->x == m_Location->x + 1 && object_location->y == m_Location->y)
             {
@@ -372,8 +384,8 @@ public:
         delete m_inventory;
     };
 
-    Location *GetLocation() { return m_Location; }
-    GameObjectColor *GetColor() { return Health_to_color(m_PlayerHealth); }
+    Location *get_location() { return m_Location; }
+    GameObjectColor *get_color() { return Health_to_color(m_PlayerHealth); }
 };
 
 class Wall : public GameObject
@@ -389,8 +401,8 @@ public:
         delete m_Location;
     };
 
-    Location *GetLocation() { return m_Location; }
-    GameObjectColor *GetColor() { return new GameObjectColor(1, 1, 1); }
+    Location *get_location() { return m_Location; }
+    GameObjectColor *get_color() { return new GameObjectColor(1, 1, 1); }
 
 private:
     Location *m_Location;
@@ -439,7 +451,7 @@ public:
         set_is_player_passable(m_IsOpen);
     }
 
-    GameObjectColor *GetColor()
+    GameObjectColor *get_color()
     {
         if (m_IsOpen)
             return new GameObjectColor(0, 1, 0);
@@ -449,7 +461,7 @@ public:
             return new GameObjectColor(1, 1, 0);
     }
 
-    Location *GetLocation() { return m_Location; }
+    Location *get_location() { return m_Location; }
 
 private:
     bool m_IsOpen;
@@ -566,8 +578,8 @@ int rowColToIndex(int x, int y)
 
 void render_game_object(GameObject *game_object)
 {
-    Location *location = game_object->GetLocation();
-    GameObjectColor *color = game_object->GetColor();
+    Location *location = game_object->get_location();
+    GameObjectColor *color = game_object->get_color();
 
 #ifndef WINDOWS
     pixels.setPixelColor(rowColToIndex(location->x, location->y), pixels.Color(color->r, color->g, color->b));
@@ -575,24 +587,24 @@ void render_game_object(GameObject *game_object)
 #endif
 
 #if WINDOWS
-    std::cout << "X: " << location->x << " Y: " << location->y << " R: " << color->r << " G: " << color->g << " B: " << color->b << std::endl;
+    pixels.set_pixel(location->x, location->y, *color);
     delete color;
 #endif
 }
 
 void setup()
 {
+#ifndef WINDOWS
     Serial.begin(9600);
 
-#ifndef WINDOWS
     // Wait for serial to connect
     while (!Serial)
         ;
-#endif
 
     Serial.println("Starting up...");
 
     pixels.begin();
+#endif
 
     World_object_helpers::PlayerPointer = new Player(4, 4, 255);
     World_Game_Objects->push_back(World_object_helpers::PlayerPointer);
@@ -673,22 +685,53 @@ private:
 
     void game_objects_debug_window(GameObject *game_object)
     {
-        Location *location = game_object->GetLocation();
-        GameObjectColor *color = game_object->GetColor();
+        Location *location = game_object->get_location();
+        GameObjectColor *color = game_object->get_color();
         ImGui::Text("X: %d Y: %d R: %d G: %d B: %d", location->x, location->y, color->r, color->g, color->b);
         delete color;
+    }
+
+    void draw_game_display(std::vector<std::vector<GameObjectColor>> *game_display)
+    {
+        int width = game_display->size();
+        int height = game_display->at(0).size();
+
+        if (ImGui::BeginTable("gameObjectsTable", 8, ImGuiTableFlags_Borders))
+        {
+            for (int curr_height = 0; curr_height < height; curr_height++)
+            {
+                ImGui::TableNextRow();
+                for (int x = 0; x < width; x++)
+                {
+                    ImGui::TableNextColumn();
+                    ImGui::PushStyleColor(ImGuiCol_Button,
+                                          ImVec4(game_display->at(x).at(curr_height).r / 255.0f,
+                                                 game_display->at(x).at(curr_height).g / 255.0f,
+                                                 game_display->at(x).at(curr_height).b / 255.0f,
+                                                 1.0f));
+                    ImGui::Button("##gameObject", ImVec2(32, 32));
+                    ImGui::PopStyleColor();
+                }
+            }
+            ImGui::EndTable();
+        }
     }
 
 public:
     // 640x480 px window
     MiniCrawSim() : Application(640, 480, "My App")
     {
-        // Disable multi viewports for imgui to not show many windows - fixes issue with tialing window managers
-        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        // disable viewports in imgui
+        ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
     }
     // Override update (called once per frame)
     void update() override
     {
+
+        ImGui::Begin("Game State");
+        game_objects_debug_window(World_object_helpers::PlayerPointer);
+        draw_game_display(pixels.get_current_display_state());
+        ImGui::End();
         // App logic and/or ImGui code goes here
         { // Demo window
             ImGui::Begin("Example");
