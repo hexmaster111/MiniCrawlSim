@@ -1,0 +1,321 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"build/_deps/mahi-gui-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 59,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 66,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 74,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 110,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 120,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 142,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 213,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 214,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 215,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 216,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 217,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 218,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 219,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 225,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 250,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/glfw/src/libglfw3.a"
+			],
+			"targetId" : "glfw::@292da2318190b66a3baa",
+			"targetIndex" : 4,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/glad/libglad.a"
+			],
+			"targetId" : "glad::@8ab0b9cb3b88849ec662",
+			"targetIndex" : 3,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/nativefiledialog-extended/src/libnfd.a"
+			],
+			"targetId" : "nfd::@3b80e14ecf71f20e142b",
+			"targetIndex" : 7,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/nanovg/libnanovg.a"
+			],
+			"targetId" : "nanovg::@c7daccaf0a7753883acf",
+			"targetIndex" : 6,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/3rdparty/clipper/libclipper.a"
+			],
+			"targetId" : "clipper::@ee099ffbe401603287c6",
+			"targetIndex" : 1,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/libmahi-gui-d.a"
+			],
+			"targetId" : "gui::@b89b3f0f161a861a84d0",
+			"targetIndex" : 5,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 7,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				{
+					"from" : "build/_deps/mahi-gui-src/include",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 8,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				{
+					"from" : "build/_deps/mahi-gui-src/3rdparty/glad/include",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 9,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imconfig.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imgui_internal.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imgui.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imstb_rectpack.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imstb_textedit.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imstb_truetype.h",
+				"build/_deps/mahi-gui-src/3rdparty/imgui/imgui_stdlib.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 10,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-src/3rdparty/implot/implot.h",
+				"build/_deps/mahi-gui-src/3rdparty/implot/implot_internal.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 11,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-src/3rdparty/nanovg/src/nanovg.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 12,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-src/3rdparty/nanosvg/src/nanosvg.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 13,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-src/3rdparty/clipper/clipper.hpp"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 14,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/mahi-gui",
+			"exportName" : "mahi-gui-targets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "glfw::@292da2318190b66a3baa",
+					"index" : 4
+				},
+				{
+					"id" : "glad::@8ab0b9cb3b88849ec662",
+					"index" : 3
+				},
+				{
+					"id" : "nfd::@3b80e14ecf71f20e142b",
+					"index" : 7
+				},
+				{
+					"id" : "nanovg::@c7daccaf0a7753883acf",
+					"index" : 6
+				},
+				{
+					"id" : "clipper::@ee099ffbe401603287c6",
+					"index" : 1
+				},
+				{
+					"id" : "gui::@b89b3f0f161a861a84d0",
+					"index" : 5
+				}
+			],
+			"paths" : 
+			[
+				"_deps/mahi-gui-build/CMakeFiles/Export/9b97bef0d86ca3dc3ddcc92d522c219d/mahi-gui-targets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 15,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/mahi-gui",
+			"paths" : 
+			[
+				"build/_deps/mahi-gui-build/mahi-gui-config.cmake",
+				"build/_deps/mahi-gui-build/mahi-gui-config-version.cmake"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "_deps/mahi-gui-build",
+		"source" : "build/_deps/mahi-gui-src"
+	}
+}

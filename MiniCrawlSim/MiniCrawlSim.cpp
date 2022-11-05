@@ -10,9 +10,6 @@
 
 
 #if WINDOWS
-#include <Windows.h>
-
-
 #include <vector>
 #include <iostream>
 //Simulator stuff

@@ -1,0 +1,475 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build",
+					"childIndexes" : 
+					[
+						2,
+						4,
+						5,
+						7,
+						8,
+						9,
+						16
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.mahi-gui-build-Debug-a5fc55569b0b4b7b9bec.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/glfw",
+					"childIndexes" : 
+					[
+						3
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.glfw-Debug-ef6d39f383d052787aa1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/glfw",
+					"targetIndexes" : 
+					[
+						8
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/glfw/src",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.glfw.src-Debug-9d3ce0bf4f172ce5b852.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/glfw/src",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/glad",
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.glad-Debug-9b2983665e2aeedfdffa.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/glad",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/nativefiledialog-extended",
+					"childIndexes" : 
+					[
+						6
+					],
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.nativefiledialog-extended-Debug-ae1c5780c982e97ba08e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/nativefiledialog-extended"
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/nativefiledialog-extended/src",
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.nativefiledialog-extended.src-Debug-d0dfb087243bdfedfb21.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.2"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 3,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/nativefiledialog-extended/src",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/nanovg",
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.nanovg-Debug-d9589c89096d8e14baa1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/nanovg",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "_deps/mahi-gui-build/3rdparty/clipper",
+					"jsonFile" : "directory-_deps.mahi-gui-build.3rdparty.clipper-Debug-b0ec55effbc11913884d.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src/3rdparty/clipper",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "_deps/mahi-util-build",
+					"childIndexes" : 
+					[
+						10,
+						11
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.mahi-util-build-Debug-1122e7528ae1935e1a8c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src",
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"build" : "_deps/mahi-util-build/3rdparty/fmt",
+					"jsonFile" : "directory-_deps.mahi-util-build.3rdparty.fmt-Debug-66403d4fa495f695b90b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1.0"
+					},
+					"parentIndex" : 9,
+					"projectIndex" : 5,
+					"source" : "build/_deps/mahi-util-src/3rdparty/fmt",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "_deps/mahi-util-build/src/Mahi/Util",
+					"childIndexes" : 
+					[
+						12,
+						13,
+						14,
+						15
+					],
+					"jsonFile" : "directory-_deps.mahi-util-build.src.Mahi.Util-Debug-876ed31f4972e9c3bdf1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 9,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src/src/Mahi/Util"
+				},
+				{
+					"build" : "_deps/mahi-util-build/src/Mahi/Util/Concurrency",
+					"jsonFile" : "directory-_deps.mahi-util-build.src.Mahi.Util.Concurrency-Debug-eecb60af9990eb2767ce.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src/src/Mahi/Util/Concurrency"
+				},
+				{
+					"build" : "_deps/mahi-util-build/src/Mahi/Util/Logging",
+					"jsonFile" : "directory-_deps.mahi-util-build.src.Mahi.Util.Logging-Debug-9ce899e27df0a95686e2.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src/src/Mahi/Util/Logging"
+				},
+				{
+					"build" : "_deps/mahi-util-build/src/Mahi/Util/Math",
+					"jsonFile" : "directory-_deps.mahi-util-build.src.Mahi.Util.Math-Debug-b2224b2afa15ec07aefb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src/src/Mahi/Util/Math"
+				},
+				{
+					"build" : "_deps/mahi-util-build/src/Mahi/Util/Timing",
+					"jsonFile" : "directory-_deps.mahi-util-build.src.Mahi.Util.Timing-Debug-dade37602398f8a2b3e0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 4,
+					"source" : "build/_deps/mahi-util-src/src/Mahi/Util/Timing"
+				},
+				{
+					"build" : "_deps/mahi-gui-build/src/Mahi/Gui",
+					"childIndexes" : 
+					[
+						17
+					],
+					"jsonFile" : "directory-_deps.mahi-gui-build.src.Mahi.Gui-Debug-050209badd0403255b20.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src/src/Mahi/Gui"
+				},
+				{
+					"build" : "_deps/mahi-gui-build/src/Mahi/Gui/Fonts",
+					"jsonFile" : "directory-_deps.mahi-gui-build.src.Mahi.Gui.Fonts-Debug-1a31944a15ef190b1f7c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13.0"
+					},
+					"parentIndex" : 16,
+					"projectIndex" : 1,
+					"source" : "build/_deps/mahi-gui-src/src/Mahi/Gui/Fonts"
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Project",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"directoryIndexes" : 
+					[
+						1,
+						4,
+						7,
+						8,
+						16,
+						17
+					],
+					"name" : "mahi-gui",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1,
+						3,
+						5,
+						6
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3
+					],
+					"name" : "GLFW",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						4,
+						8
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6
+					],
+					"name" : "nativefiledialog-extended",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						5
+					],
+					"directoryIndexes" : 
+					[
+						9,
+						11,
+						12,
+						13,
+						14,
+						15
+					],
+					"name" : "mahi-util",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						10
+					],
+					"name" : "FMT",
+					"parentIndex" : 4,
+					"targetIndexes" : 
+					[
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "MiniCrawlSim::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-MiniCrawlSim-Debug-8d88dafabb5bee975ada.json",
+					"name" : "MiniCrawlSim",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "clipper::@ee099ffbe401603287c6",
+					"jsonFile" : "target-clipper-Debug-b44736b532bdc5aa318a.json",
+					"name" : "clipper",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "fmt::@1dc5051ce61772968524",
+					"jsonFile" : "target-fmt-Debug-768fd9a52dda6bb1bada.json",
+					"name" : "fmt",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "glad::@8ab0b9cb3b88849ec662",
+					"jsonFile" : "target-glad-Debug-cc4916107a9fe43a2989.json",
+					"name" : "glad",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "glfw::@292da2318190b66a3baa",
+					"jsonFile" : "target-glfw-Debug-18b17c4b85edf02f5a0c.json",
+					"name" : "glfw",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "gui::@b89b3f0f161a861a84d0",
+					"jsonFile" : "target-gui-Debug-050e4e061915b12b110c.json",
+					"name" : "gui",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "nanovg::@c7daccaf0a7753883acf",
+					"jsonFile" : "target-nanovg-Debug-c3194d64f6ccc98b2e40.json",
+					"name" : "nanovg",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "nfd::@3b80e14ecf71f20e142b",
+					"jsonFile" : "target-nfd-Debug-7f9557d8fa2f0ba41178.json",
+					"name" : "nfd",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "uninstall::@bb8c698527e6e1f6c780",
+					"jsonFile" : "target-uninstall-Debug-85588e47864b1e50b6c0.json",
+					"name" : "uninstall",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "util::@9e7e004084100b3727b4",
+					"jsonFile" : "target-util-Debug-963808f53fdf721dc22f.json",
+					"name" : "util",
+					"projectIndex" : 4
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/hailey/code/MiniCrawlSim/MiniCrawlSim/build",
+		"source" : "/home/hailey/code/MiniCrawlSim/MiniCrawlSim"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 4
+	}
+}
