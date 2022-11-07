@@ -94,8 +94,11 @@ public:
         m_pixels = new std::vector<std::vector<GameObjectColor>>(width, std::vector<GameObjectColor>(height));
     }
 
-    /// @brief Not using in the sim, just a placeholder to make the main thing happy
-    void clear() {}
+    void clear()
+    {
+        delete m_pixels;
+        m_pixels = new std::vector<std::vector<GameObjectColor>>(m_width, std::vector<GameObjectColor>(m_height));
+    }
 
     /// @brief Not using in the sim, just a placeholder to make the main thing happy
     void show() {}
@@ -107,7 +110,13 @@ public:
 
     void set_pixel(int x, int y, GameObjectColor color)
     {
-        (*m_pixels)[x][y] = color;
+
+        // Mirror the y axis
+        y = m_height - y - 1;
+        // x = m_width - x - 1;
+
+        // Set the color in the pixels vector
+        m_pixels->at(x).at(y) = color;
     }
 } pixels(8, 32);
 
@@ -146,20 +155,63 @@ enum class Direction
     SouthWest
 };
 
-// Getting some objes into the game, its the way to define spesfic object, that could be made up from one of the base types,
-// like normal_door and locked_door are the same door class.
+// Getting some objes into the game, its the way to define spesfic object,
+// that could be made up from one of the base types, like normal_door and
+// locked_door are the same door class. This is pretty much our item id system
 enum class level_item
 {
+    player,
     wall,
     door_normal,
     door_locked,
-    player
+    door_key,
 };
 
-enum class player_item
+#if WINDOWS
+// To string methods
+std::string to_string(Direction dir)
 {
-    key,
-};
+    switch (dir)
+    {
+    case Direction::North:
+        return "North";
+    case Direction::East:
+        return "East";
+    case Direction::South:
+        return "South";
+    case Direction::West:
+        return "West";
+    case Direction::NorthEast:
+        return "NorthEast";
+    case Direction::NorthWest:
+        return "NorthWest";
+    case Direction::SouthEast:
+        return "SouthEast";
+    case Direction::SouthWest:
+        return "SouthWest";
+    default:
+        return "Unknown";
+    }
+}
+
+std::string to_string(level_item item)
+{
+    switch (item)
+    {
+    case level_item::wall:
+        return "wall";
+    case level_item::door_normal:
+        return "door_normal";
+    case level_item::door_locked:
+        return "door_locked";
+    case level_item::player:
+        return "player";
+    default:
+        return "Unknown";
+    }
+}
+
+#endif
 
 struct LevelItem
 {
@@ -199,7 +251,7 @@ public:
     virtual Location *get_location() = 0;
     /// @brief
     /// @return New color object
-    virtual GameObjectColor *get_color() = 0;
+    virtual GameObjectColor get_color() = 0;
 
     virtual void Interact(GameObject *interactor)
     {
@@ -207,22 +259,37 @@ public:
     };
 };
 
+/// @brief Base class for all items that the player can have in their inventory
+class CPlayer_Item : public GameObject
+
+{
+public:
+    CPlayer_Item(int x, int y, level_item item) : GameObject(true, item)
+    {
+        m_location = new Location(x, y);
+    };
+
+    ~CPlayer_Item(){};
+
+private:
+    Location *m_location;
+};
+
 class Player : public GameObject
 {
 private:
     Location *m_Location;
 
-    std::vector<player_item> *m_inventory = new std::vector<player_item>();
+    std::vector<CPlayer_Item *> *m_inventory = new std::vector<CPlayer_Item *>();
 
-    // IM A MEMORY LEAK (I think, delete what this returns)
-    GameObjectColor *Health_to_color(uint8_t health)
+    GameObjectColor Health_to_color(uint8_t health)
     {
         if (health > 200)
-            return new GameObjectColor(0, 1, 0);
+            return GameObjectColor(0, 1, 0);
         else if (health > 100)
-            return new GameObjectColor(1, 1, 0);
+            return GameObjectColor(1, 1, 0);
         else
-            return new GameObjectColor(1, 0, 0);
+            return GameObjectColor(1, 0, 0);
     }
 
     bool can_move(std::vector<GameObject *> *World_Game_Objects, Location new_location)
@@ -249,7 +316,7 @@ public:
         m_PlayerHealth = starting_health;
     };
 
-    void pick_up_item(player_item item)
+    void pick_up_item(CPlayer_Item *item)
     {
         m_inventory->push_back(item);
     }
@@ -385,7 +452,7 @@ public:
     };
 
     Location *get_location() { return m_Location; }
-    GameObjectColor *get_color() { return Health_to_color(m_PlayerHealth); }
+    GameObjectColor get_color() { return Health_to_color(m_PlayerHealth); }
 };
 
 class Wall : public GameObject
@@ -402,7 +469,7 @@ public:
     };
 
     Location *get_location() { return m_Location; }
-    GameObjectColor *get_color() { return new GameObjectColor(1, 1, 1); }
+    GameObjectColor get_color() { return GameObjectColor(1, 1, 1); }
 
 private:
     Location *m_Location;
@@ -425,43 +492,40 @@ public:
 
     void Interact(GameObject *interactor) override
     {
-        // If its a player, check if the door is locked
-        // If its locked, display a message saying its locked
-        // If its not locked, check if its open
-        // If its open, close it
-        // If its closed, open it
-        // If its not a player, do nothing
-
         if (interactor->get_type() == level_item::player)
         {
+            // cast the interactor to a player
+
             if (m_IsLocked)
             {
-                Serial.println("The door is locked");
+                Serial.println("The door is locked TODO: check for key");
+                Player *player = static_cast<Player *>(interactor);
+                // TODO: Add a check to see if the player has a key
+
+                set_is_player_passable(m_IsOpen);
                 return;
             }
 
-            // cast the interactor to a player
-            Player *player = static_cast<Player *>(interactor);
-
             // Toggle the door
             m_IsOpen = !m_IsOpen;
+            set_is_player_passable(m_IsOpen);
             Serial.println("The door is now " + m_IsOpen ? "open" : "closed");
         }
-
-        set_is_player_passable(m_IsOpen);
     }
 
-    GameObjectColor *get_color()
+    GameObjectColor get_color()
     {
         if (m_IsOpen)
-            return new GameObjectColor(0, 1, 0);
+            return GameObjectColor(0, 1, 0);
         else if (m_IsLocked)
-            return new GameObjectColor(1, 0, 0);
+            return GameObjectColor(1, 0, 0);
         else
-            return new GameObjectColor(1, 1, 0);
+            return GameObjectColor(1, 1, 0);
     }
 
     Location *get_location() { return m_Location; }
+    bool *get_lock_state() { return &m_IsLocked; }
+    bool *get_open_state() { return &m_IsOpen; }
 
 private:
     bool m_IsOpen;
@@ -469,61 +533,33 @@ private:
     Location *m_Location;
 };
 
-std::vector<LevelItem> dev_level = {
-    // Left Wall
-    LevelItem(level_item::wall, 0, 0),
-    LevelItem(level_item::wall, 0, 1),
-    LevelItem(level_item::wall, 0, 2),
-    LevelItem(level_item::wall, 0, 3),
-    LevelItem(level_item::wall, 0, 4),
-    LevelItem(level_item::wall, 0, 5),
-    LevelItem(level_item::wall, 0, 6),
+std::vector<LevelItem>
+    dev_level = {
 
-    // Right Wall
-    LevelItem(level_item::wall, 7, 0),
-    LevelItem(level_item::wall, 7, 1),
-    LevelItem(level_item::wall, 7, 2),
-    LevelItem(level_item::wall, 7, 3),
-    LevelItem(level_item::wall, 7, 4),
-    LevelItem(level_item::wall, 7, 5),
-    LevelItem(level_item::wall, 7, 6),
+        // spawn point
+        LevelItem(level_item::player, 1, 1),
 
-    // Bottom Wall
-    LevelItem(level_item::wall, 1, 0),
-    LevelItem(level_item::wall, 2, 0),
-    LevelItem(level_item::wall, 3, 0),
-    LevelItem(level_item::wall, 4, 0),
-    LevelItem(level_item::wall, 5, 0),
-    LevelItem(level_item::wall, 6, 0),
+        // Top Wall, with door
+        LevelItem(level_item::wall, 1, 6),
+        LevelItem(level_item::wall, 2, 6),
+        LevelItem(level_item::door_normal, 3, 6),
+        LevelItem(level_item::wall, 4, 6),
+        LevelItem(level_item::wall, 5, 6),
+        LevelItem(level_item::wall, 6, 6),
 
-    // Two stagered boxes in the middle of the room
-    LevelItem(level_item::wall, 2, 2),
-    LevelItem(level_item::wall, 3, 3),
+        // hallway out of the door
+        LevelItem(level_item::wall, 2, 5 + 6),
+        LevelItem(level_item::wall, 2, 4 + 6),
 
-    // Top Wall, with door
-    LevelItem(level_item::wall, 1, 6),
-    LevelItem(level_item::wall, 2, 6),
-    LevelItem(level_item::door_normal, 3, 6),
-    LevelItem(level_item::wall, 4, 6),
-    LevelItem(level_item::wall, 5, 6),
-    LevelItem(level_item::wall, 6, 6),
+        // hallway out of the door
+        LevelItem(level_item::wall, 4, 5 + 6),
+        LevelItem(level_item::wall, 4, 4 + 6),
 
-    // hallway out of the door
-    LevelItem(level_item::wall, 2, 5 + 6),
-    LevelItem(level_item::wall, 2, 4 + 6),
-    LevelItem(level_item::wall, 2, 3 + 6),
-    LevelItem(level_item::wall, 2, 2 + 6),
-    LevelItem(level_item::wall, 2, 1 + 6),
+        // Lets put a locked door at the end of this hallway
+        LevelItem(level_item::door_locked, 3, 5 + 6),
 
-    // hallway out of the door
-    LevelItem(level_item::wall, 4, 5 + 6),
-    LevelItem(level_item::wall, 4, 4 + 6),
-    LevelItem(level_item::wall, 4, 3 + 6),
-    LevelItem(level_item::wall, 4, 2 + 6),
-    LevelItem(level_item::wall, 4, 1 + 6),
-
-    // Lets put a locked door at the end of this hallway
-    LevelItem(level_item::door_locked, 3, 5 + 6),
+        // The key for this door
+        LevelItem(level_item::door_key, 3, 4 + 6),
 
 };
 
@@ -531,29 +567,37 @@ std::vector<LevelItem> dev_level = {
 // things in it, let us doing some neat things
 std::vector<GameObject *> *World_Game_Objects = new std::vector<GameObject *>();
 
-void loadWorldState(std::vector<LevelItem> *level, std::vector<GameObject *> *out_world)
+// this is where we put important things about the game
+namespace neat_world_objects
 {
-    for (int i = 0; i < level->size(); i++)
+    Player *player_pointer;
+}
+
+void loadWorldState(std::vector<LevelItem> *item, std::vector<GameObject *> *out_world)
+{
+    for (int i = 0; i < item->size(); i++)
     {
-        switch (level->at(i).type)
+        switch (item->at(i).type)
         {
         case level_item::wall:
-            out_world->push_back(new Wall(level->at(i).x, level->at(i).y));
+            out_world->push_back(new Wall(item->at(i).x, item->at(i).y));
             break;
         case level_item::door_normal:
-            out_world->push_back(new Door(level->at(i).x, level->at(i).y, false, false, level->at(i).type));
+            out_world->push_back(new Door(item->at(i).x, item->at(i).y, false, false, item->at(i).type));
             break;
         case level_item::door_locked:
-            out_world->push_back(new Door(level->at(i).x, level->at(i).y, false, true, level->at(i).type));
+            out_world->push_back(new Door(item->at(i).x, item->at(i).y, false, true, item->at(i).type));
+            break;
+        case level_item::player:
+            out_world->push_back(new Player(item->at(i).x, item->at(i).y, 255));
+            neat_world_objects::player_pointer = static_cast<Player *>(out_world->back());
+            break;
+        case level_item::door_key:
+            // out_world->push_back(new (level->at(i).x, level->at(i).y));
+
             break;
         }
     }
-}
-
-// this is where we put important things about the game
-namespace World_object_helpers
-{
-    Player *PlayerPointer;
 }
 
 #ifndef WINDOWS
@@ -565,30 +609,23 @@ Adafruit_NeoPixel pixels(32 * 8, 16, NEO_GRB);
 
 int rowColToIndex(int x, int y)
 {
-    // if y is odd
     if (y % 2 == 1)
-    {
         return (y * 8) + (7 - x);
-    }
     else
-    {
         return (y * 8) + x;
-    }
 }
 
 void render_game_object(GameObject *game_object)
 {
     Location *location = game_object->get_location();
-    GameObjectColor *color = game_object->get_color();
+    GameObjectColor color = game_object->get_color();
 
 #ifndef WINDOWS
     pixels.setPixelColor(rowColToIndex(location->x, location->y), pixels.Color(color->r, color->g, color->b));
-    delete color;
 #endif
 
 #if WINDOWS
-    pixels.set_pixel(location->x, location->y, *color);
-    delete color;
+    pixels.set_pixel(location->x, location->y, color);
 #endif
 }
 
@@ -606,12 +643,14 @@ void setup()
     pixels.begin();
 #endif
 
-    World_object_helpers::PlayerPointer = new Player(4, 4, 255);
-    World_Game_Objects->push_back(World_object_helpers::PlayerPointer);
+    // neat_world_objects::PlayerPointer = new Player(4, 4, 255);
+    // World_Game_Objects->push_back(neat_world_objects::player_pointer);
 
     Serial.printf("Free Heap before level load: %d\r\n", ESP.getFreeHeap());
     loadWorldState(&dev_level, World_Game_Objects);
     Serial.printf("Free Heap after level load: %d\r\n", ESP.getFreeHeap());
+    if (neat_world_objects::player_pointer == nullptr)
+        throw; // There was no player loaded after loading the level
 }
 
 void loop()
@@ -624,37 +663,37 @@ void loop()
         switch (key)
         {
         case '8':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::North);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::North);
             break;
         case '2':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::South);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::South);
             break;
         case '4':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::West);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::West);
             break;
         case '6':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::East);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::East);
             break;
         case '7':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::NorthWest);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::NorthWest);
             break;
         case '9':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::NorthEast);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::NorthEast);
             break;
         case '1':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::SouthWest);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::SouthWest);
             break;
         case '3':
-            World_object_helpers::PlayerPointer->move(World_Game_Objects, Direction::SouthEast);
+            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::SouthEast);
             break;
         case '-':
-            World_object_helpers::PlayerPointer->m_PlayerHealth--;
+            neat_world_objects::player_pointer->m_PlayerHealth--;
             break;
         case '+':
-            World_object_helpers::PlayerPointer->m_PlayerHealth++;
+            neat_world_objects::player_pointer->m_PlayerHealth++;
             break;
         case '5':
-            World_object_helpers::PlayerPointer->start_action_select(World_Game_Objects);
+            neat_world_objects::player_pointer->start_action_select(World_Game_Objects);
             break;
         }
         pixels.clear();
@@ -683,12 +722,115 @@ class MiniCrawSim : public Application
 private:
     bool m_show_demo_window = false;
 
-    void game_objects_debug_window(GameObject *game_object)
+    void draw_location_viewer(Location *location)
     {
-        Location *location = game_object->get_location();
-        GameObjectColor *color = game_object->get_color();
-        ImGui::Text("X: %d Y: %d R: %d G: %d B: %d", location->x, location->y, color->r, color->g, color->b);
-        delete color;
+        ImGui::InputInt("X", &location->x);
+        ImGui::InputInt("Y", &location->y);
+    }
+
+    void draw_type_spesfic_thing(GameObject *game_object)
+    {
+
+        if (ImGui::Button("Take Engine Step"))
+        {
+            Serial.take_in_key('0'); // cycle nothing into the game engine so it will rerender
+            loop();                  // take a loop for the renderer
+        }
+
+        level_item type = game_object->get_type();
+        // lets try to cast this as all of the diffrent GameObject types, and see if our object is that
+        draw_location_viewer(game_object->get_location());
+
+        ImGui::Separator();
+
+        Wall *wall = dynamic_cast<Wall *>(game_object);
+        if (wall != nullptr)
+        {
+            ImGui::Text("Wall....");
+            return;
+        }
+
+        Door *door = dynamic_cast<Door *>(game_object);
+        if (door != nullptr)
+        {
+            ImGui::Checkbox("Is open", door->get_open_state());
+            ImGui::Checkbox("Is Locked", door->get_lock_state());
+            return;
+        }
+
+        Player *player = dynamic_cast<Player *>(game_object);
+        if (player != nullptr)
+        {
+            return;
+        }
+
+        // if we get here, we have not found a type, so lets just say that
+        ImGui::Text("Unknown");
+    }
+
+    void game_object_info_list(std::vector<GameObject *> *game_objects)
+    {
+        ImGui::Begin("Game Objects");
+
+        // Left, object list
+        static int selected = 0;
+        {
+            ImGui::BeginChild("Game Objects", ImVec2(150, 0), true);
+
+            for (int i = 0; i < game_objects->size(); i++)
+            {
+                auto game_object_type = game_objects->at(i)->get_type();
+                auto type_to_string = to_string(game_object_type);
+                auto index_string = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
+
+                auto label = index_string + " " + type_to_string;
+
+                if (ImGui::Selectable(label.c_str(), selected == i))
+                    selected = i;
+            }
+
+            ImGui::EndChild();
+        }
+        ImGui::SameLine();
+
+        // Right
+        {
+            ImGui::BeginGroup();
+            ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+            ImGui::Text("MyGameId: %d", selected);
+            ImGui::Separator();
+            std::string location_to_string = "Location: " + std::to_string(game_objects->at(selected)->get_location()->x) + ", " + std::to_string(game_objects->at(selected)->get_location()->y);
+            std::string color_to_string = "Color: " + std::to_string(game_objects->at(selected)->get_color().r) + ", " + std::to_string(game_objects->at(selected)->get_color().g) + ", " + std::to_string(game_objects->at(selected)->get_color().b);
+            // Type: get_type() as enum string + get_type() as int
+            auto game_object_type = game_objects->at(selected)->get_type();
+            auto type_to_string = to_string(game_object_type);
+            std::string type_to_string_with_int = "Type: " + type_to_string + " (" + std::to_string((int)game_object_type) + ")";
+
+            ImGui::Text(location_to_string.c_str());
+            ImGui::Text(color_to_string.c_str());
+            ImGui::SameLine();
+            // color view rect
+            ImGui::ColorButton("##color",
+                               ImVec4(game_objects->at(selected)->get_color().r,
+                                      game_objects->at(selected)->get_color().g,
+                                      game_objects->at(selected)->get_color().b,
+                                      1.0f),
+                               ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoAlpha);
+
+            ImGui::Text(type_to_string.c_str());
+
+            // TODO: Switch out for the spesific type of object
+            draw_type_spesfic_thing(game_objects->at(selected));
+            ImGui::EndChild();
+            ImGui::EndGroup();
+        }
+
+        ImGui::End();
+    }
+
+    void draw_game_display(std::vector<std::vector<GameObjectColor>> game_display)
+    {
+        draw_game_display(&game_display);
     }
 
     void draw_game_display(std::vector<std::vector<GameObjectColor>> *game_display)
@@ -703,17 +845,106 @@ private:
                 ImGui::TableNextRow();
                 for (int x = 0; x < width; x++)
                 {
+
                     ImGui::TableNextColumn();
-                    ImGui::PushStyleColor(ImGuiCol_Button,
-                                          ImVec4(game_display->at(x).at(curr_height).r / 255.0f,
-                                                 game_display->at(x).at(curr_height).g / 255.0f,
-                                                 game_display->at(x).at(curr_height).b / 255.0f,
-                                                 1.0f));
-                    ImGui::Button("##gameObject", ImVec2(32, 32));
-                    ImGui::PopStyleColor();
+
+                    // Draw a color button
+                    ImGui::ColorButton("##color",
+                                       ImVec4(game_display->at(x).at(curr_height).r,
+                                              game_display->at(x).at(curr_height).g,
+                                              game_display->at(x).at(curr_height).b,
+                                              1.0f),
+                                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoAlpha);
                 }
             }
             ImGui::EndTable();
+        }
+    }
+
+    char get_key_pressed()
+    {
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_DownArrow)))
+            return '2';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_UpArrow)))
+            return '8';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_LeftArrow)))
+            return '4';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_RightArrow)))
+            return '6';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_PageUp)))
+            return '9';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_PageDown)))
+            return '3';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Home)))
+            return '7';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_End)))
+            return '1';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Delete)))
+            return '-';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Insert)))
+            return '+';
+        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)))
+            return '5';
+        return (char)255;
+    }
+
+    std::vector<std::vector<GameObjectColor>> get_display_from_objects(std::vector<GameObject *> *game_objects)
+    {
+        std::vector<std::vector<GameObjectColor>> game_display;
+        for (int i = 0; i < 8; i++)
+        {
+            std::vector<GameObjectColor> row;
+            for (int j = 0; j < 32; j++)
+            {
+                row.push_back(GameObjectColor(0, 0, 0));
+            }
+            game_display.push_back(row);
+        }
+
+        for (auto game_object : *game_objects)
+        {
+            auto location = game_object->get_location();
+            // invert y
+            game_display.at(location->x).at(31 - location->y) = game_object->get_color();
+            // game_display.at(location->x).at(location->y) = game_object->get_color();
+        }
+
+        return game_display;
+    }
+
+    void draw_dockspace()
+    {
+        ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    }
+
+    void draw_ui()
+    {
+        draw_dockspace();
+        game_object_info_list(World_Game_Objects);
+
+        ImGui::Begin("display");
+        draw_game_display(pixels.get_current_display_state());
+        ImGui::End();
+
+        ImGui::Begin("internal");
+        draw_game_display(get_display_from_objects(World_Game_Objects));
+        ImGui::End();
+
+        if (ImGui::Button("Show Demo"))
+            m_show_demo_window = !m_show_demo_window;
+
+        if (m_show_demo_window)
+            ImGui::ShowDemoWindow(&m_show_demo_window);
+    }
+
+    void handle_input()
+    {
+
+        char key_pressed = get_key_pressed();
+        if (key_pressed != (char)255)
+        {
+            Serial.take_in_key(key_pressed);
+            loop(); // Take a game loop step
         }
     }
 
@@ -727,24 +958,8 @@ public:
     // Override update (called once per frame)
     void update() override
     {
-
-        ImGui::Begin("Game State");
-        game_objects_debug_window(World_object_helpers::PlayerPointer);
-        draw_game_display(pixels.get_current_display_state());
-        ImGui::End();
-        // App logic and/or ImGui code goes here
-        { // Demo window
-            ImGui::Begin("Example");
-            if (ImGui::Button("Press Me!"))
-                print("Hello, World!");
-
-            if (ImGui::Button("Show Demo"))
-                m_show_demo_window = !m_show_demo_window;
-
-            if (m_show_demo_window)
-                ImGui::ShowDemoWindow(&m_show_demo_window);
-            ImGui::End();
-        }
+        handle_input();
+        draw_ui();
     }
 };
 
