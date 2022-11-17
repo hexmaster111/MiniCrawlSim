@@ -206,6 +206,8 @@ std::string to_string(level_item item)
         return "door_locked";
     case level_item::player:
         return "player";
+    case level_item::door_key:
+        return "door_key";
     default:
         return "Unknown";
     }
@@ -259,17 +261,49 @@ public:
     };
 };
 
+void remove_game_object_from_level(std::vector<GameObject *> *level, GameObject *obj)
+{
+    for (int i = 0; i < level->size(); i++)
+    {
+        if (level->at(i) == obj)
+        {
+            level->erase(level->begin() + i);
+            return;
+        }
+    }
+}
+
+void remove_game_object_from_active_level(GameObject *obj);
+
 /// @brief Base class for all items that the player can have in their inventory
 class CPlayer_Item : public GameObject
-
 {
 public:
     CPlayer_Item(int x, int y, level_item item) : GameObject(true, item)
     {
         m_location = new Location(x, y);
+        this->set_is_player_passable(true);
     };
 
     ~CPlayer_Item(){};
+
+    // TODO: handle the get location
+    Location *get_location() { return m_location; }
+
+    virtual const char *get_name() = 0; // Im not sure how this is gonna be displayed yet
+
+    void Interact(GameObject *interactor) override
+    {
+        OnPickup(interactor->get_location(), interactor);
+        // Add the item to the player inventory
+        Serial.println("Player item interact ran");
+
+        remove_game_object_from_active_level(this);
+        // throw "Not implemented";
+    }
+
+    virtual void OnPickup(Location *pickup_location, GameObject *interactor) = 0;
+    virtual void OnDrop(Location *drop_location, GameObject *interactor) = 0;
 
 private:
     Location *m_location;
@@ -315,6 +349,9 @@ public:
         m_Location = new Location(starting_x, starting_y);
         m_PlayerHealth = starting_health;
     };
+
+    // Handle with care
+    std::vector<CPlayer_Item *> *get_inventory() { return m_inventory; }
 
     void pick_up_item(CPlayer_Item *item)
     {
@@ -501,6 +538,22 @@ public:
                 Serial.println("The door is locked TODO: check for key");
                 Player *player = static_cast<Player *>(interactor);
                 // TODO: Add a check to see if the player has a key
+                // Check if the player has a key in their inventory
+                // If they do, unlock the door
+
+                auto player_inventory = player->get_inventory();
+
+                for (int i = 0; i < player_inventory->size(); i++)
+                {
+                    if (player_inventory->at(i)->get_type() == level_item::door_key)
+                    {
+                        m_IsLocked = false;
+                        Serial.println("The door is unlocked");
+                        // Remove the item from the inventory
+                        player_inventory->erase(player_inventory->begin() + i);
+                        break;
+                    }
+                }
 
                 set_is_player_passable(m_IsOpen);
                 return;
@@ -533,11 +586,39 @@ private:
     Location *m_Location;
 };
 
+class CDoorKey final : public CPlayer_Item
+{
+public:
+    CDoorKey(int x, int y) : CPlayer_Item(x, y, level_item::door_key){};
+
+    // TODO: add some flavor text, a rusty key, a damp key, a slimy key, a key with a skull on it, etc.
+    const char *get_name() override { return "Door Key"; }
+
+    void OnPickup(Location *pickup_location, GameObject *interactor) override
+    {
+        // Put item in the player's inventory
+
+        // Cast the interactor to a player
+        Player *player = static_cast<Player *>(interactor);
+        if (player != nullptr)
+            player->get_inventory()->push_back(this);
+
+        // TODO: Pipe stuff into the noise system, and log
+    };
+    void OnDrop(Location *drop_location, GameObject *interactor) override{};
+
+    // TODO: handle the gameobject get color
+    GameObjectColor get_color() override { return GameObjectColor(1, 0, 1); }
+};
+
 std::vector<LevelItem>
     dev_level = {
 
         // spawn point
         LevelItem(level_item::player, 1, 1),
+
+        // Test key
+        LevelItem(level_item::door_key, 2, 2),
 
         // Top Wall, with door
         LevelItem(level_item::wall, 1, 6),
@@ -558,12 +639,10 @@ std::vector<LevelItem>
         // Lets put a locked door at the end of this hallway
         LevelItem(level_item::door_locked, 3, 5 + 6),
 
-        // The key for this door
-        LevelItem(level_item::door_key, 3, 4 + 6),
-
 };
 
-// This feels a bit **RAW** but I do like the ide of this being the world, it just be a class to let us get the active
+// This feels a bit **RAW** but I do like the ide of this being the world,
+// it just be a class to let us get the active
 // things in it, let us doing some neat things
 std::vector<GameObject *> *World_Game_Objects = new std::vector<GameObject *>();
 
@@ -571,6 +650,19 @@ std::vector<GameObject *> *World_Game_Objects = new std::vector<GameObject *>();
 namespace neat_world_objects
 {
     Player *player_pointer;
+}
+
+void remove_game_object_from_active_level(GameObject *obj)
+{
+    Serial.println("Remove obj from level");
+    for (int i = 0; i < World_Game_Objects->size(); i++)
+    {
+        if (World_Game_Objects->at(i) == obj)
+        {
+            World_Game_Objects->erase(World_Game_Objects->begin() + i);
+            return;
+        }
+    }
 }
 
 void loadWorldState(std::vector<LevelItem> *item, std::vector<GameObject *> *out_world)
@@ -593,8 +685,7 @@ void loadWorldState(std::vector<LevelItem> *item, std::vector<GameObject *> *out
             neat_world_objects::player_pointer = static_cast<Player *>(out_world->back());
             break;
         case level_item::door_key:
-            // out_world->push_back(new (level->at(i).x, level->at(i).y));
-
+            out_world->push_back(new CDoorKey(item->at(i).x, item->at(i).y));
             break;
         }
     }
@@ -659,7 +750,8 @@ void loop()
     if (Serial.available() > 0)
     {
         char key = Serial.read();
-        // TODO: For now we pass in all the world objects, but we should only be passing in the ones around the player
+        // TODO: For now we pass in all the world objects,
+        // but we should only be passing in the ones around the player
         switch (key)
         {
         case '8':
@@ -696,6 +788,7 @@ void loop()
             neat_world_objects::player_pointer->start_action_select(World_Game_Objects);
             break;
         }
+
         pixels.clear();
         for (int i = 0; i < World_Game_Objects->size(); i++)
         {
@@ -761,6 +854,44 @@ private:
         Player *player = dynamic_cast<Player *>(game_object);
         if (player != nullptr)
         {
+            // Player inventory
+            ImGui::Text("Player Inventory");
+            auto inventory = player->get_inventory();
+            for (int i = 0; i < inventory->size(); i++)
+            {
+                ImGui::Text(inventory->at(i)->get_name());
+            }
+            return;
+        }
+
+        // Check if it is an CPlayer_Item
+        CPlayer_Item *player_item = dynamic_cast<CPlayer_Item *>(game_object);
+        if (player_item != nullptr)
+        {
+            ImGui::Separator();
+            ImGui::Text("Player Item");
+            // Lets get the name of the item
+            ImGui::Text(player_item->get_name());
+
+            // Build a trashy location to run the drop on
+            static int drop_x = 0;
+            static int drop_y = 0;
+
+            ImGui::InputInt("X", &drop_x);
+            ImGui::InputInt("Y", &drop_y);
+
+            if (ImGui::Button("Trigger On Drop"))
+            {
+                Location drop_location = Location(drop_x, drop_y);
+                player_item->OnDrop(&drop_location, nullptr);
+            }
+
+            if (ImGui::Button("Trigger On Pickup"))
+            {
+                Location drop_location = Location(drop_x, drop_y);
+                player_item->OnPickup(&drop_location, nullptr);
+            }
+
             return;
         }
 
@@ -796,15 +927,22 @@ private:
         // Right
         {
             ImGui::BeginGroup();
-            ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+            // Leave room for 1 line below us
+            ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
             ImGui::Text("MyGameId: %d", selected);
             ImGui::Separator();
-            std::string location_to_string = "Location: " + std::to_string(game_objects->at(selected)->get_location()->x) + ", " + std::to_string(game_objects->at(selected)->get_location()->y);
-            std::string color_to_string = "Color: " + std::to_string(game_objects->at(selected)->get_color().r) + ", " + std::to_string(game_objects->at(selected)->get_color().g) + ", " + std::to_string(game_objects->at(selected)->get_color().b);
+            std::string location_to_string = "Location: " +
+                                             std::to_string(game_objects->at(selected)->get_location()->x) +
+                                             ", " + std::to_string(game_objects->at(selected)->get_location()->y);
+            std::string color_to_string = "Color: " +
+                                          std::to_string(game_objects->at(selected)->get_color().r) +
+                                          ", " + std::to_string(game_objects->at(selected)->get_color().g) +
+                                          ", " + std::to_string(game_objects->at(selected)->get_color().b);
             // Type: get_type() as enum string + get_type() as int
             auto game_object_type = game_objects->at(selected)->get_type();
             auto type_to_string = to_string(game_object_type);
-            std::string type_to_string_with_int = "Type: " + type_to_string + " (" + std::to_string((int)game_object_type) + ")";
+            std::string type_to_string_with_int = "Type: " + type_to_string +
+                                                  " (" + std::to_string((int)game_object_type) + ")";
 
             ImGui::Text(location_to_string.c_str());
             ImGui::Text(color_to_string.c_str());
@@ -815,7 +953,8 @@ private:
                                       game_objects->at(selected)->get_color().g,
                                       game_objects->at(selected)->get_color().b,
                                       1.0f),
-                               ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoAlpha);
+                               ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop |
+                                   ImGuiColorEditFlags_NoAlpha);
 
             ImGui::Text(type_to_string.c_str());
 
@@ -854,7 +993,8 @@ private:
                                               game_display->at(x).at(curr_height).g,
                                               game_display->at(x).at(curr_height).b,
                                               1.0f),
-                                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoAlpha);
+                                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop |
+                                           ImGuiColorEditFlags_NoAlpha);
                 }
             }
             ImGui::EndTable();
@@ -950,7 +1090,7 @@ private:
 
 public:
     // 640x480 px window
-    MiniCrawSim() : Application(640, 480, "My App")
+    MiniCrawSim() : Application(640, 480, "Tiny Crawl Simulator")
     {
         // disable viewports in imgui
         ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
