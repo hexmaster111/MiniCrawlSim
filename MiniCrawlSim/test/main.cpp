@@ -165,6 +165,7 @@ enum class level_item
     door_normal,
     door_locked,
     door_key,
+    ITEM_TYPE_COUNT // This is a special one, it is used to count the number of items
 };
 
 #if WINDOWS
@@ -665,29 +666,33 @@ void remove_game_object_from_active_level(GameObject *obj)
     }
 }
 
-void loadWorldState(std::vector<LevelItem> *item, std::vector<GameObject *> *out_world)
+GameObject *build_game_object(LevelItem *item) // This may not need to take in a levelItem ptr. Not sure yet...
 {
-    for (int i = 0; i < item->size(); i++)
+    switch (item->type)
     {
-        switch (item->at(i).type)
-        {
-        case level_item::wall:
-            out_world->push_back(new Wall(item->at(i).x, item->at(i).y));
-            break;
-        case level_item::door_normal:
-            out_world->push_back(new Door(item->at(i).x, item->at(i).y, false, false, item->at(i).type));
-            break;
-        case level_item::door_locked:
-            out_world->push_back(new Door(item->at(i).x, item->at(i).y, false, true, item->at(i).type));
-            break;
-        case level_item::player:
-            out_world->push_back(new Player(item->at(i).x, item->at(i).y, 255));
-            neat_world_objects::player_pointer = static_cast<Player *>(out_world->back());
-            break;
-        case level_item::door_key:
-            out_world->push_back(new CDoorKey(item->at(i).x, item->at(i).y));
-            break;
-        }
+    case level_item::wall:
+        return new Wall(item->x, item->y);
+    case level_item::door_normal:
+        return new Door(item->x, item->y, false, false, item->type);
+    case level_item::door_locked:
+        return new Door(item->x, item->y, false, true, item->type);
+    case level_item::player:
+        neat_world_objects::player_pointer = static_cast<Player *>(new Player(item->x, item->y, 255));
+        return neat_world_objects::player_pointer; // Little funny stuff here, saving the player so we know
+        // what object it is. TODO: Many players support
+    case level_item::door_key:
+        return new CDoorKey(item->x, item->y);
+
+    default:
+        throw "I cant make what i dont know into a game object silly :P";
+    }
+}
+
+void load_world_state(std::vector<LevelItem> *items, std::vector<GameObject *> *out_world)
+{
+    for (int i = 0; i < items->size(); i++)
+    {
+        out_world->push_back(build_game_object(&items->at(i)));
     }
 }
 
@@ -738,7 +743,7 @@ void setup()
     // World_Game_Objects->push_back(neat_world_objects::player_pointer);
 
     Serial.printf("Free Heap before level load: %d\r\n", ESP.getFreeHeap());
-    loadWorldState(&dev_level, World_Game_Objects);
+    load_world_state(&dev_level, World_Game_Objects);
     Serial.printf("Free Heap after level load: %d\r\n", ESP.getFreeHeap());
     if (neat_world_objects::player_pointer == nullptr)
         throw; // There was no player loaded after loading the level
@@ -1001,6 +1006,34 @@ private:
         }
     }
 
+    void draw_dev_item_menu()
+    {
+        static int spawnX = 0;
+        static int spawnY = 0;
+
+        ImGui::Begin("dev item menu");
+        ImGui::Text("Item Spawn Location");
+        ImGui::InputInt("X", &spawnX);
+        ImGui::InputInt("Y", &spawnY);
+
+        // for each item in the items enum, draw a menu label and a button to spawn it
+        for (int i = 0; i < (int)level_item::ITEM_TYPE_COUNT; i++)
+        {
+            auto item_type = (level_item)i;
+            auto item_type_string = to_string(item_type);
+            if (ImGui::Button(item_type_string.c_str()))
+            {
+                // Spawn the item
+                // 1) build the new LevelItem
+                // 2) pass it into the object builder
+                // 3) Put the item in the world objects list
+                // 4) $$$
+            }
+        }
+
+        ImGui::End();
+    }
+
     char get_key_pressed()
     {
         if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_DownArrow)))
@@ -1061,6 +1094,8 @@ private:
     {
         draw_dockspace();
         game_object_info_list(World_Game_Objects);
+
+        draw_dev_item_menu();
 
         ImGui::Begin("display");
         draw_game_display(pixels.get_current_display_state());
