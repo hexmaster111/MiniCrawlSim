@@ -1025,6 +1025,7 @@ private:
             {
                 // Spawn the item
                 // 1) build the new LevelItem
+
                 // 2) pass it into the object builder
                 // 3) Put the item in the world objects list
                 // 4) $$$
