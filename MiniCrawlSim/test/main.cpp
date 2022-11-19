@@ -1,6 +1,6 @@
 // MiniCrawlSim.cpp : Defines the entry point for the application.
 //
-
+// You many need to set this env varable if you dont have grate GPU support
 // export LIBGL_ALWAYS_SOFTWARE = true
 
 #define WINDOWS 1
@@ -8,6 +8,19 @@
 #ifndef WINDOWS
 #include <Arduino.h>
 #endif
+
+namespace GameException
+{
+    class GameException
+    {
+    public:
+        GameException(const char *message)
+        {
+            this->message = message;
+        }
+        const char *message;
+    };
+}
 
 struct GameObjectColor
 {
@@ -532,15 +545,11 @@ public:
     {
         if (interactor->get_type() == level_item::player)
         {
-            // cast the interactor to a player
 
             if (m_IsLocked)
             {
-                Serial.println("The door is locked TODO: check for key");
+                // Check if the player has a key, if they do, unlock the door
                 Player *player = static_cast<Player *>(interactor);
-                // TODO: Add a check to see if the player has a key
-                // Check if the player has a key in their inventory
-                // If they do, unlock the door
 
                 auto player_inventory = player->get_inventory();
 
@@ -717,7 +726,7 @@ void render_game_object(GameObject *game_object)
     GameObjectColor color = game_object->get_color();
 
 #ifndef WINDOWS
-    pixels.setPixelColor(rowColToIndex(location->x, location->y), pixels.Color(color->r, color->g, color->b));
+    pixels.setPixelColor(rowColToIndex(location->x, location->y), pixels.Color(color.r, color.g, color.b));
 #endif
 
 #if WINDOWS
