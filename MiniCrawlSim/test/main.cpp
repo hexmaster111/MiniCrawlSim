@@ -9,19 +9,6 @@
 #include <Arduino.h>
 #endif
 
-namespace GameException
-{
-    class GameException
-    {
-    public:
-        GameException(const char *message)
-        {
-            this->message = message;
-        }
-        const char *message;
-    };
-}
-
 struct GameObjectColor
 {
     GameObjectColor(int r, int g, int b)
@@ -281,7 +268,8 @@ void remove_game_object_from_level(std::vector<GameObject *> *level, GameObject 
     {
         if (level->at(i) == obj)
         {
-            level->erase(level->begin() + i);
+            delete level->at(i);
+            // level->erase(level->begin() + i);
             return;
         }
     }
