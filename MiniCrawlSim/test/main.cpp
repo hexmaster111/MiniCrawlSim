@@ -324,6 +324,14 @@ private:
             return GameObjectColor(1, 0, 0);
     }
 
+public:
+    Player(const int starting_x, const int starting_y, const uint8_t starting_health) : GameObject(
+                                                                                            false, level_item::player)
+    {
+        m_Location = new Location(starting_x, starting_y);
+        m_PlayerHealth = starting_health;
+    };
+
     bool can_move(std::vector<GameObject *> *World_Game_Objects, Location new_location)
     {
         for (int i = 0; i < World_Game_Objects->size(); i++)
@@ -339,15 +347,6 @@ private:
         }
         return true;
     }
-
-public:
-    Player(const int starting_x, const int starting_y, const uint8_t starting_health) : GameObject(
-                                                                                            false, level_item::player)
-    {
-        m_Location = new Location(starting_x, starting_y);
-        m_PlayerHealth = starting_health;
-    };
-
     // Handle with care
     std::vector<CPlayer_Item *> *get_inventory() { return m_inventory; }
 
@@ -618,9 +617,98 @@ public:
         m_Location = new Location(x, y);
     };
 
+    bool can_move(std::vector<GameObject *> *World_Game_Objects, Location new_location)
+    {
+        for (int i = 0; i < World_Game_Objects->size(); i++)
+        {
+            if (World_Game_Objects->at(i)->get_location()->x == new_location.x &&
+                World_Game_Objects->at(i)->get_location()->y == new_location.y)
+            {
+                if (!World_Game_Objects->at(i)->IsPlayerPassable())
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     Location *get_location() override { return m_Location; }
     int *get_health() { return &Health; }
     int get_health() const { return Health; }
+    /// @brief Trys to move the entity in the direction specified
+    /// @param direction the way to move
+    /// @return if the entity moved
+    bool try_move(Direction direction, std::vector<GameObject *> *world_objects)
+    {
+        switch (direction)
+        {
+        case Direction::North:
+            if (can_move(world_objects, Location(m_Location->x, m_Location->y + 1)))
+            {
+                m_Location->y++;
+                return true;
+            }
+            break;
+        case Direction::South:
+            if (can_move(world_objects, Location(m_Location->x, m_Location->y - 1)))
+            {
+                m_Location->y--;
+                return true;
+            }
+            break;
+        case Direction::East:
+            if (can_move(world_objects, Location(m_Location->x + 1, m_Location->y)))
+            {
+                m_Location->x++;
+                return true;
+            }
+            break;
+        case Direction::West:
+            if (can_move(world_objects, Location(m_Location->x - 1, m_Location->y)))
+            {
+                m_Location->x--;
+                return true;
+            }
+            break;
+        case Direction::NorthEast:
+            if (can_move(world_objects, Location(m_Location->x + 1, m_Location->y + 1)))
+            {
+                m_Location->x++;
+                m_Location->y++;
+                return true;
+            }
+            break;
+        case Direction::NorthWest:
+            if (can_move(world_objects, Location(m_Location->x - 1, m_Location->y + 1)))
+            {
+                m_Location->x--;
+                m_Location->y++;
+                return true;
+            }
+            break;
+        case Direction::SouthEast:
+            if (can_move(world_objects, Location(m_Location->x + 1, m_Location->y - 1)))
+            {
+                m_Location->x++;
+                m_Location->y--;
+                return true;
+            }
+            break;
+        case Direction::SouthWest:
+            if (can_move(world_objects, Location(m_Location->x - 1, m_Location->y - 1)))
+            {
+                m_Location->x--;
+                m_Location->y--;
+                return true;
+            }
+            break;
+        default:
+            throw; // Not a valid direction
+            break;
+        }
+        throw; // shit went wrong
+    };
 
     virtual ~Ai_Entity() { delete m_Location; };
     /// @brief Called after a player moves
@@ -631,14 +719,15 @@ public:
 class CSlime : public Ai_Entity
 {
 public:
-    CSlime(int x, int y) : Ai_Entity(level_item::E_slime, x, y, 10){};
+    CSlime(int x, int y) : Ai_Entity(level_item::E_slime, x, y, 10) { spawn_location = new Location(x, y); };
 
-    ~CSlime(){};
+    ~CSlime() { delete spawn_location; };
 
     GameObjectColor get_color() override { return GameObjectColor(1, 0, 0); }
     void do_turn(std::vector<GameObject *> *world_objects) override
     {
-        Serial.println("The Slime did there turn");
+        Location *my_location = get_location();
+        try_move(Direction::North, world_objects);
     };
     void Interact(GameObject *interactor) override
     {
@@ -646,6 +735,8 @@ public:
     };
 
 private:
+    bool m_IsAggro = false;
+    Location *spawn_location;
 };
 
 std::vector<LevelItem>
@@ -874,6 +965,13 @@ class MiniCrawSim : public Application
 
 private:
     bool m_show_demo_window = false;
+    void do_engine_step()
+    {
+        Serial.take_in_key('0');
+        // cycle nothing into the game engine so it will rerender
+        // take a loop for the renderer
+        loop();
+    }
 
     void draw_location_viewer(Location *location)
     {
@@ -885,7 +983,10 @@ private:
     {
         ImGui::Text("AI Entity");
         if (ImGui::Button("Do Turn"))
+        {
             ai_entity->do_turn(world_game_objects);
+            do_engine_step();
+        }
 
         ImGui::InputInt("Health", ai_entity->get_health());
     }
@@ -894,12 +995,7 @@ private:
     {
 
         if (ImGui::Button("Take Engine Step"))
-        {
-            Serial.take_in_key('0');
-            // cycle nothing into the game engine so it will rerender
-            // take a loop for the renderer
-            loop();
-        }
+            do_engine_step();
 
         level_item type = game_object->get_type();
         // lets try to cast this as all of the diffrent GameObject types,
@@ -1040,6 +1136,13 @@ private:
                                    ImGuiColorEditFlags_NoAlpha);
 
             ImGui::Text(type_to_string.c_str());
+
+            if (ImGui::Button("Remove"))
+            {
+                remove_game_object_from_active_level(game_objects->at(selected));
+                // Set the selected to 0, so we dont crash
+                selected = 0;
+            }
 
             // TODO: Switch out for the spesific type of object
             draw_type_spesfic_thing(game_objects->at(selected));
