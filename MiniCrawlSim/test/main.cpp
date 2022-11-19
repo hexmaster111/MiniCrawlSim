@@ -269,7 +269,7 @@ void remove_game_object_from_level(std::vector<GameObject *> *level, GameObject 
         if (level->at(i) == obj)
         {
             delete level->at(i);
-            // level->erase(level->begin() + i);
+            level->erase(level->begin() + i);
             return;
         }
     }
