@@ -3,7 +3,11 @@
 // You many need to set this env varable if you dont have grate GPU support
 // export LIBGL_ALWAYS_SOFTWARE = true
 
+// If windows 1 is deffined, we will build for the simulator, if not, we are building for embedded device
 #define WINDOWS 1
+
+#define PIXEL_STRIP_ROWS 8
+#define PIXEL_STRIP_COLS 32
 
 #ifndef WINDOWS
 #include <Arduino.h>
@@ -118,7 +122,7 @@ public:
         // Set the color in the pixels vector
         m_pixels->at(x).at(y) = color;
     }
-} pixels(8, 32);
+} pixels(PIXEL_STRIP_ROWS, PIXEL_STRIP_COLS);
 
 static class ESP
 {
@@ -165,6 +169,7 @@ enum class level_item
     door_normal,
     door_locked,
     door_key,
+    E_slime,
     ITEM_TYPE_COUNT // This is a special one, it is used to count the number of items
 };
 
@@ -191,7 +196,7 @@ std::string to_string(Direction dir)
     case Direction::SouthWest:
         return "SouthWest";
     default:
-        return "Unknown";
+        return "Unknown Direction";
     }
 }
 
@@ -209,13 +214,17 @@ std::string to_string(level_item item)
         return "player";
     case level_item::door_key:
         return "door_key";
+    case level_item::E_slime:
+        return "E_slime";
     default:
-        return "Unknown";
+        return "Unknown item";
     }
 }
 
 #endif
 
+/// @brief This is what the game loader takes in to buildout the gameworld on startup, its an easy
+/// of mapping locations out
 struct LevelItem
 {
     LevelItem(level_item type, int x, int y)
@@ -230,6 +239,7 @@ struct LevelItem
     int y;
 };
 
+/// @brief The base of the game. Anything that is in the game must enharet from this.
 class GameObject
 {
 private:
@@ -250,10 +260,7 @@ public:
     bool IsPlayerPassable() { return player_passable; }
     void set_is_player_passable(bool is_player_passable) { this->player_passable = is_player_passable; }
     level_item get_type() { return m_type; }
-
     virtual Location *get_location() = 0;
-    /// @brief
-    /// @return New color object
     virtual GameObjectColor get_color() = 0;
 
     virtual void Interact(GameObject *interactor)
@@ -262,19 +269,8 @@ public:
     };
 };
 
-void remove_game_object_from_level(std::vector<GameObject *> *level, GameObject *obj)
-{
-    for (int i = 0; i < level->size(); i++)
-    {
-        if (level->at(i) == obj)
-        {
-            delete level->at(i);
-            level->erase(level->begin() + i);
-            return;
-        }
-    }
-}
-
+/// @brief Remotes
+/// @param obj
 void remove_game_object_from_active_level(GameObject *obj);
 
 /// @brief Base class for all items that the player can have in their inventory
@@ -609,6 +605,49 @@ public:
     GameObjectColor get_color() override { return GameObjectColor(1, 0, 1); }
 };
 
+class Ai_Entity : public GameObject
+{
+private:
+    int Health;
+    Location *m_Location;
+
+public:
+    Ai_Entity(level_item type, int x, int y, uint8_t starting_health) : GameObject(true, type)
+    {
+        Health = starting_health;
+        m_Location = new Location(x, y);
+    };
+
+    Location *get_location() override { return m_Location; }
+    int *get_health() { return &Health; }
+    int get_health() const { return Health; }
+
+    virtual ~Ai_Entity() { delete m_Location; };
+    /// @brief Called after a player moves
+    /// @param world_objects The list of all game objects in the world
+    virtual void do_turn(std::vector<GameObject *> *world_objects) = 0;
+};
+
+class CSlime : public Ai_Entity
+{
+public:
+    CSlime(int x, int y) : Ai_Entity(level_item::E_slime, x, y, 10){};
+
+    ~CSlime(){};
+
+    GameObjectColor get_color() override { return GameObjectColor(1, 0, 0); }
+    void do_turn(std::vector<GameObject *> *world_objects) override
+    {
+        Serial.println("The Slime did there turn");
+    };
+    void Interact(GameObject *interactor) override
+    {
+        Serial.println("You pet the slime");
+    };
+
+private:
+};
+
 std::vector<LevelItem>
     dev_level = {
 
@@ -639,12 +678,11 @@ std::vector<LevelItem>
 
 };
 
-// This feels a bit **RAW** but I do like the ide of this being the world,
-// it just be a class to let us get the active
-// things in it, let us doing some neat things
-std::vector<GameObject *> *World_Game_Objects = new std::vector<GameObject *>();
+/// @brief This is the world, anything in this array is what is rendered and what everything is hit tested aginst.
+std::vector<GameObject *> *world_game_objects = new std::vector<GameObject *>();
 
-// this is where we put important things about the game
+/// @brief This namespace is a conveniont place to store objects that we want to play with at an engine level,
+///     or if we are just playing around we can pop them here.
 namespace neat_world_objects
 {
     Player *player_pointer;
@@ -653,15 +691,21 @@ namespace neat_world_objects
 void remove_game_object_from_active_level(GameObject *obj)
 {
     Serial.println("Remove obj from level");
-    for (int i = 0; i < World_Game_Objects->size(); i++)
+    for (int i = 0; i < world_game_objects->size(); i++)
     {
-        if (World_Game_Objects->at(i) == obj)
+        if (world_game_objects->at(i) == obj)
         {
-            World_Game_Objects->erase(World_Game_Objects->begin() + i);
+            world_game_objects->erase(world_game_objects->begin() + i);
             return;
         }
     }
+    throw; // This Object was not found in the world
 }
+
+namespace world_object_config
+{
+    constexpr uint8_t player_starting_health = 255;
+};
 
 GameObject *build_game_object(LevelItem *item) // This may not need to take in a levelItem ptr. Not sure yet...
 {
@@ -674,38 +718,44 @@ GameObject *build_game_object(LevelItem *item) // This may not need to take in a
     case level_item::door_locked:
         return new Door(item->x, item->y, false, true, item->type);
     case level_item::player:
-        neat_world_objects::player_pointer = static_cast<Player *>(new Player(item->x, item->y, 255));
+        neat_world_objects::player_pointer =
+            static_cast<Player *>(new Player(item->x, item->y,
+                                             world_object_config::player_starting_health));
         return neat_world_objects::player_pointer; // Little funny stuff here, saving the player so we know
         // what object it is. TODO: Many players support
     case level_item::door_key:
         return new CDoorKey(item->x, item->y);
+    case level_item::E_slime:
+        return new CSlime(item->x, item->y);
 
     default:
-        throw "I cant make what i dont know into a game object silly :P";
+        throw; // The game tryed to load an object that we dont know about
     }
 }
 
 void load_world_state(std::vector<LevelItem> *items, std::vector<GameObject *> *out_world)
 {
     for (int i = 0; i < items->size(); i++)
-    {
         out_world->push_back(build_game_object(&items->at(i)));
-    }
 }
 
 #ifndef WINDOWS
 // Game Rendering Code
 #include <Adafruit_NeoPixel.h>
 
-Adafruit_NeoPixel pixels(32 * 8, 16, NEO_GRB);
+Adafruit_NeoPixel pixels(PIXEL_STRIP_COLS *PIXEL_STRIP_ROWS, 16, NEO_GRB);
 #endif
 
-int rowColToIndex(int x, int y)
+/// @brief Turns an xy point into an index of a zigzag strip
+/// @param x x
+/// @param y y
+/// @return index
+int row_col_to_index(int x, int y)
 {
     if (y % 2 == 1)
-        return (y * 8) + (7 - x);
+        return (y * PIXEL_STRIP_ROWS) + ((PIXEL_STRIP_ROWS - 1) - x); //
     else
-        return (y * 8) + x;
+        return (y * PIXEL_STRIP_ROWS) + x;
 }
 
 void render_game_object(GameObject *game_object)
@@ -714,7 +764,7 @@ void render_game_object(GameObject *game_object)
     GameObjectColor color = game_object->get_color();
 
 #ifndef WINDOWS
-    pixels.setPixelColor(rowColToIndex(location->x, location->y), pixels.Color(color.r, color.g, color.b));
+    pixels.setPixelColor(row_col_to_index(location->x, location->y), pixels.Color(color.r, color.g, color.b));
 #endif
 
 #if WINDOWS
@@ -736,11 +786,8 @@ void setup()
     pixels.begin();
 #endif
 
-    // neat_world_objects::PlayerPointer = new Player(4, 4, 255);
-    // World_Game_Objects->push_back(neat_world_objects::player_pointer);
-
     Serial.printf("Free Heap before level load: %d\r\n", ESP.getFreeHeap());
-    load_world_state(&dev_level, World_Game_Objects);
+    load_world_state(&dev_level, world_game_objects);
     Serial.printf("Free Heap after level load: %d\r\n", ESP.getFreeHeap());
     if (neat_world_objects::player_pointer == nullptr)
         throw; // There was no player loaded after loading the level
@@ -757,44 +804,55 @@ void loop()
         switch (key)
         {
         case '8':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::North);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::North);
             break;
         case '2':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::South);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::South);
             break;
         case '4':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::West);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::West);
             break;
         case '6':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::East);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::East);
             break;
         case '7':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::NorthWest);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::NorthWest);
             break;
         case '9':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::NorthEast);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::NorthEast);
             break;
         case '1':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::SouthWest);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::SouthWest);
             break;
         case '3':
-            neat_world_objects::player_pointer->move(World_Game_Objects, Direction::SouthEast);
+            neat_world_objects::player_pointer
+                ->move(world_game_objects, Direction::SouthEast);
             break;
         case '-':
-            neat_world_objects::player_pointer->m_PlayerHealth--;
+            neat_world_objects::player_pointer
+                ->m_PlayerHealth--;
             break;
         case '+':
-            neat_world_objects::player_pointer->m_PlayerHealth++;
+            neat_world_objects::player_pointer
+                ->m_PlayerHealth++;
             break;
         case '5':
-            neat_world_objects::player_pointer->start_action_select(World_Game_Objects);
+            neat_world_objects::player_pointer
+                ->start_action_select(world_game_objects);
             break;
         }
 
         pixels.clear();
-        for (int i = 0; i < World_Game_Objects->size(); i++)
+        for (int i = 0; i < world_game_objects->size(); i++)
         {
-            render_game_object(World_Game_Objects->at(i));
+            render_game_object(world_game_objects->at(i));
         }
         pixels.show();
         Serial.printf("Free Heap: %d\r\n", ESP.getFreeHeap());
@@ -823,17 +881,29 @@ private:
         ImGui::InputInt("Y", &location->y);
     }
 
+    void draw_type_spesfic_thing_for_ai_entity(Ai_Entity *ai_entity)
+    {
+        ImGui::Text("AI Entity");
+        if (ImGui::Button("Do Turn"))
+            ai_entity->do_turn(world_game_objects);
+
+        ImGui::InputInt("Health", ai_entity->get_health());
+    }
+
     void draw_type_spesfic_thing(GameObject *game_object)
     {
 
         if (ImGui::Button("Take Engine Step"))
         {
-            Serial.take_in_key('0'); // cycle nothing into the game engine so it will rerender
-            loop();                  // take a loop for the renderer
+            Serial.take_in_key('0');
+            // cycle nothing into the game engine so it will rerender
+            // take a loop for the renderer
+            loop();
         }
 
         level_item type = game_object->get_type();
-        // lets try to cast this as all of the diffrent GameObject types, and see if our object is that
+        // lets try to cast this as all of the diffrent GameObject types,
+        // and see if our object is that
         draw_location_viewer(game_object->get_location());
 
         ImGui::Separator();
@@ -897,8 +967,16 @@ private:
             return;
         }
 
+        // Check if it is a Ai_Entity
+        Ai_Entity *ai_entity = dynamic_cast<Ai_Entity *>(game_object);
+        if (ai_entity != nullptr)
+        {
+            draw_type_spesfic_thing_for_ai_entity(ai_entity);
+            return;
+        }
+
         // if we get here, we have not found a type, so lets just say that
-        ImGui::Text("Unknown");
+        ImGui::Text("Unknown Item Type: %d", type);
     }
 
     void game_object_info_list(std::vector<GameObject *> *game_objects)
@@ -933,6 +1011,9 @@ private:
             ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
             ImGui::Text("MyGameId: %d", selected);
             ImGui::Separator();
+            // CRASH HERE: When an item is selected, and its removed form the gameobjects list
+            // and the item was the last item in the list, then this will crash
+            // TODO: Try catch this part, when it throws, set selected to 0
             std::string location_to_string = "Location: " +
                                              std::to_string(game_objects->at(selected)->get_location()->x) +
                                              ", " + std::to_string(game_objects->at(selected)->get_location()->y);
@@ -979,7 +1060,7 @@ private:
         int width = game_display->size();
         int height = game_display->at(0).size();
 
-        if (ImGui::BeginTable("gameObjectsTable", 8, ImGuiTableFlags_Borders))
+        if (ImGui::BeginTable("gameObjectsTable", PIXEL_STRIP_ROWS, ImGuiTableFlags_Borders))
         {
             for (int curr_height = 0; curr_height < height; curr_height++)
             {
@@ -1019,14 +1100,13 @@ private:
             auto item_type = (level_item)i;
             auto item_type_string = to_string(item_type);
             if (ImGui::Button(item_type_string.c_str()))
-            {
-                // Spawn the item
-                // 1) build the new LevelItem
+                world_game_objects->push_back(build_game_object(new LevelItem(item_type, spawnX, spawnY)));
 
-                // 2) pass it into the object builder
-                // 3) Put the item in the world objects list
-                // 4) $$$
-            }
+            // Spawn the item
+            // 1) build the new LevelItem
+            // 2) pass it into the object builder
+            // 3) Put the item in the world objects list
+            // 4) $$$
         }
 
         ImGui::End();
@@ -1062,10 +1142,10 @@ private:
     std::vector<std::vector<GameObjectColor>> get_display_from_objects(std::vector<GameObject *> *game_objects)
     {
         std::vector<std::vector<GameObjectColor>> game_display;
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < PIXEL_STRIP_ROWS; i++)
         {
             std::vector<GameObjectColor> row;
-            for (int j = 0; j < 32; j++)
+            for (int j = 0; j < PIXEL_STRIP_COLS; j++)
             {
                 row.push_back(GameObjectColor(0, 0, 0));
             }
@@ -1091,7 +1171,7 @@ private:
     void draw_ui()
     {
         draw_dockspace();
-        game_object_info_list(World_Game_Objects);
+        game_object_info_list(world_game_objects);
 
         draw_dev_item_menu();
 
@@ -1100,7 +1180,7 @@ private:
         ImGui::End();
 
         ImGui::Begin("internal");
-        draw_game_display(get_display_from_objects(World_Game_Objects));
+        draw_game_display(get_display_from_objects(world_game_objects));
         ImGui::End();
 
         if (ImGui::Button("Show Demo"))
