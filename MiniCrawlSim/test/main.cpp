@@ -5,7 +5,6 @@
 
 // If windows 1 is deffined, we will build for the simulator, if not, we are building for embedded device
 #define WINDOWS 1
-
 #define PIXEL_STRIP_ROWS 8
 #define PIXEL_STRIP_COLS 32
 
@@ -707,7 +706,7 @@ public:
             throw; // Not a valid direction
             break;
         }
-        throw; // shit went wrong
+        return false;
     };
 
     virtual ~Ai_Entity() { delete m_Location; };
@@ -723,7 +722,7 @@ public:
 
     ~CSlime() { delete spawn_location; };
 
-    GameObjectColor get_color() override { return GameObjectColor(1, 0, 0); }
+    GameObjectColor get_color() override { return GameObjectColor(25, 0, 0); }
     void do_turn(std::vector<GameObject *> *world_objects) override
     {
         Location *my_location = get_location();
@@ -743,10 +742,30 @@ std::vector<LevelItem>
     dev_level = {
 
         // spawn point
-        LevelItem(level_item::player, 1, 1),
+        LevelItem(level_item::player, 5, 8),
 
         // Test key
         LevelItem(level_item::door_key, 2, 2),
+
+        // Slime holder room
+        LevelItem(level_item::E_slime, 3, 3),
+
+        // Left wall
+        LevelItem(level_item::wall, 0, 0),
+        LevelItem(level_item::wall, 0, 1),
+        LevelItem(level_item::wall, 0, 2),
+        LevelItem(level_item::wall, 0, 3),
+        LevelItem(level_item::wall, 0, 4),
+        LevelItem(level_item::wall, 0, 5),
+        LevelItem(level_item::wall, 0, 6),
+
+        // Right wall
+        LevelItem(level_item::wall, 6, 0),
+        LevelItem(level_item::wall, 6, 1),
+        LevelItem(level_item::wall, 6, 2),
+        LevelItem(level_item::wall, 6, 3),
+        LevelItem(level_item::wall, 6, 4),
+        LevelItem(level_item::wall, 6, 5),
 
         // Top Wall, with door
         LevelItem(level_item::wall, 1, 6),
@@ -755,6 +774,13 @@ std::vector<LevelItem>
         LevelItem(level_item::wall, 4, 6),
         LevelItem(level_item::wall, 5, 6),
         LevelItem(level_item::wall, 6, 6),
+
+        // Bottom wall
+        LevelItem(level_item::wall, 1, 0),
+        LevelItem(level_item::wall, 2, 0),
+        LevelItem(level_item::wall, 3, 0),
+        LevelItem(level_item::wall, 4, 0),
+        LevelItem(level_item::wall, 5, 0),
 
         // hallway out of the door
         LevelItem(level_item::wall, 2, 5 + 6),
@@ -766,7 +792,6 @@ std::vector<LevelItem>
 
         // Lets put a locked door at the end of this hallway
         LevelItem(level_item::door_locked, 3, 5 + 6),
-
 };
 
 /// @brief This is the world, anything in this array is what is rendered and what everything is hit tested aginst.
@@ -1162,7 +1187,9 @@ private:
     {
         int width = game_display->size();
         int height = game_display->at(0).size();
-
+        int selected_index = 0; // This is the element we should be highlighting on the game display
+        int current_index = 0;  // This is the current element we are on
+        // if it is -1 then we should not highlight anything
         if (ImGui::BeginTable("gameObjectsTable", PIXEL_STRIP_ROWS, ImGuiTableFlags_Borders))
         {
             for (int curr_height = 0; curr_height < height; curr_height++)
@@ -1173,12 +1200,16 @@ private:
 
                     ImGui::TableNextColumn();
 
+                    auto object_color = game_display->at(x).at(curr_height);
+                    // object_color comes in as a byte from 0-255, but we need it to be 0-1,
+                    // then boost it by 0.5 so that it is not so dark
+                    float r = (object_color.r / 255.0f) + 0.5f;
+                    float g = (object_color.g / 255.0f) + 0.5f;
+                    float b = (object_color.b / 255.0f) + 0.5f;
+
                     // Draw a color button
                     ImGui::ColorButton("##color",
-                                       ImVec4(game_display->at(x).at(curr_height).r,
-                                              game_display->at(x).at(curr_height).g,
-                                              game_display->at(x).at(curr_height).b,
-                                              1.0f),
+                                       ImVec4(r, g, b, 1.0f),
                                        ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop |
                                            ImGuiColorEditFlags_NoAlpha);
                 }
@@ -1189,8 +1220,8 @@ private:
 
     void draw_dev_item_menu()
     {
-        static int spawnX = 0;
-        static int spawnY = 0;
+        static int spawnX = 1;
+        static int spawnY = 1;
 
         ImGui::Begin("dev item menu");
         ImGui::Text("Item Spawn Location");
@@ -1259,7 +1290,7 @@ private:
         {
             auto location = game_object->get_location();
             // invert y
-            game_display.at(location->x).at(31 - location->y) = game_object->get_color();
+            game_display.at(location->x).at((PIXEL_STRIP_COLS - 1) - location->y) = game_object->get_color();
             // game_display.at(location->x).at(location->y) = game_object->get_color();
         }
 
