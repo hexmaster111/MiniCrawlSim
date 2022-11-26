@@ -1103,7 +1103,6 @@ void loop()
         }
         pixels.show();
         Serial.printf("Free Heap: %d\r\n", ESP.getFreeHeap());
-        // Im not worried, but this is 200k <- thats what copilot says
     }
 }
 
