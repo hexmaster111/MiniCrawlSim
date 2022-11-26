@@ -10,6 +10,10 @@
 
 #ifndef WINDOWS
 #include <Arduino.h>
+int get_random(int min, int max)
+{
+    return random(min, max); // TODO
+}
 #endif
 
 struct GameObjectColor
@@ -37,6 +41,11 @@ struct GameObjectColor
 #include <vector>
 #include <iostream>
 // Simulator stuff
+
+int get_random(int min, int max)
+{
+    return rand() % max + min;
+}
 
 // Serial.println(); replacement hackin thing
 class DebugSerial
@@ -158,6 +167,67 @@ enum class Direction
     SouthWest
 };
 
+/// @brief Returns the perfect direction to goto to hit the target
+/// @param from
+/// @param to
+/// @return direction to go
+Direction get_direction_to_location(Location *from, Location *to)
+{
+    int x_diff = to->x - from->x;
+    int y_diff = to->y - from->y;
+
+    if (x_diff == 0 && y_diff == 0)
+    {
+        return Direction::North;
+    }
+
+    if (x_diff == 0)
+    {
+        if (y_diff > 0)
+        {
+            return Direction::North;
+        }
+        else
+        {
+            return Direction::South;
+        }
+    }
+
+    if (y_diff == 0)
+    {
+        if (x_diff > 0)
+        {
+            return Direction::East;
+        }
+        else
+        {
+            return Direction::West;
+        }
+    }
+
+    if (x_diff > 0 && y_diff > 0)
+    {
+        return Direction::NorthEast;
+    }
+
+    if (x_diff > 0 && y_diff < 0)
+    {
+        return Direction::SouthEast;
+    }
+
+    if (x_diff < 0 && y_diff > 0)
+    {
+        return Direction::NorthWest;
+    }
+
+    if (x_diff < 0 && y_diff < 0)
+    {
+        return Direction::SouthWest;
+    }
+
+    return Direction::North;
+}
+
 // Getting some objes into the game, its the way to define spesfic object,
 // that could be made up from one of the base types, like normal_door and
 // locked_door are the same door class. This is pretty much our item id system
@@ -168,7 +238,7 @@ enum class level_item
     door_normal,
     door_locked,
     door_key,
-    E_slime,
+    ESlime,
     ITEM_TYPE_COUNT // This is a special one, it is used to count the number of items
 };
 
@@ -213,7 +283,7 @@ std::string to_string(level_item item)
         return "player";
     case level_item::door_key:
         return "door_key";
-    case level_item::E_slime:
+    case level_item::ESlime:
         return "E_slime";
     default:
         return "Unknown item";
@@ -488,6 +558,21 @@ public:
     GameObjectColor get_color() { return Health_to_color(m_PlayerHealth); }
 };
 
+/// @brief Helper function to find the player in a list of game objects
+/// @param world_objects
+/// @return the player, nullptr if not found
+Player *get_player(std::vector<GameObject *> *world_objects)
+{
+    for (auto obj : *world_objects)
+    {
+        if (obj->get_type() == level_item::player)
+        {
+            return (Player *)obj;
+        }
+    }
+    return nullptr;
+}
+
 class Wall : public GameObject
 {
 public:
@@ -718,15 +803,16 @@ public:
 class CSlime : public Ai_Entity
 {
 public:
-    CSlime(int x, int y) : Ai_Entity(level_item::E_slime, x, y, 10) { spawn_location = new Location(x, y); };
+    CSlime(int x, int y) : Ai_Entity(level_item::ESlime, x, y, 10) { spawn_location = new Location(x, y); };
 
     ~CSlime() { delete spawn_location; };
 
-    GameObjectColor get_color() override { return GameObjectColor(25, 0, 0); }
+    GameObjectColor get_color() override { return GameObjectColor(2, 0, 0); }
     void do_turn(std::vector<GameObject *> *world_objects) override
     {
-        Location *my_location = get_location();
-        try_move(Direction::North, world_objects);
+        move(world_objects);
+        if (m_IsAggro)
+            attack(world_objects);
     };
     void Interact(GameObject *interactor) override
     {
@@ -734,6 +820,34 @@ public:
     };
 
 private:
+    void move(std::vector<GameObject *> *world_objects)
+    {
+        Location *my_location = get_location();
+        Player *player = get_player(world_objects);
+        if (player == nullptr)
+            return; // No player in the world
+
+        // The slmie can only see 3 tiles away, if the player is not within that range, we randomly move
+        if (abs(player->get_location()->x - my_location->x) > 3 ||
+            abs(player->get_location()->y - my_location->y) > 3)
+        {
+            // Randomly move
+            try_move(static_cast<Direction>(rand() % 8), world_objects);
+            return;
+        }
+
+        // The player is within range, lets try to move towards them
+        auto direction = get_direction_to_location(my_location, player->get_location());
+        if (try_move(direction, world_objects))
+            return;
+
+        // We failed to move towards the player, lets try to move randomly
+        try_move(static_cast<Direction>(rand() % 8), world_objects);
+    }
+    void attack(std::vector<GameObject *> *world_objects)
+    {
+        // TODO
+    }
     bool m_IsAggro = false;
     Location *spawn_location;
 };
@@ -748,7 +862,7 @@ std::vector<LevelItem>
         LevelItem(level_item::door_key, 2, 2),
 
         // Slime holder room
-        LevelItem(level_item::E_slime, 3, 3),
+        LevelItem(level_item::ESlime, 3, 3),
 
         // Left wall
         LevelItem(level_item::wall, 0, 0),
@@ -841,7 +955,7 @@ GameObject *build_game_object(LevelItem *item) // This may not need to take in a
         // what object it is. TODO: Many players support
     case level_item::door_key:
         return new CDoorKey(item->x, item->y);
-    case level_item::E_slime:
+    case level_item::ESlime:
         return new CSlime(item->x, item->y);
 
     default:
@@ -886,6 +1000,19 @@ void render_game_object(GameObject *game_object)
 #if WINDOWS
     pixels.set_pixel(location->x, location->y, color);
 #endif
+}
+
+void do_ai_turn()
+{
+    for (int i = 0; i < world_game_objects->size(); i++)
+    {
+        GameObject *obj = world_game_objects->at(i);
+        Ai_Entity *ai_entity = dynamic_cast<Ai_Entity *>(obj);
+        if (ai_entity != nullptr)
+        {
+            ai_entity->do_turn(world_game_objects);
+        }
+    }
 }
 
 void setup()
@@ -965,7 +1092,11 @@ void loop()
             break;
         }
 
+        // Lets take the AI step then
+        do_ai_turn();
+
         pixels.clear();
+
         for (int i = 0; i < world_game_objects->size(); i++)
         {
             render_game_object(world_game_objects->at(i));
@@ -1183,6 +1314,28 @@ private:
         draw_game_display(&game_display);
     }
 
+    float get_imgui_display_color(uint8_t color_value)
+    {
+        // So, we use like 4 diffrent intencidies of the color for the strip, but here,
+        // imgui works bewtween 0-1, so we can just switch off the byte value to get the
+        // flats that we need
+        switch (color_value)
+        {
+        case 0:
+            return 0.0f;
+        case 1:
+            return 0.25f;
+        case 2:
+            return 0.5f;
+        case 3:
+            return 0.75f;
+        case 4:
+            return 1.0f;
+        default:
+            throw; // Make this correct, but for now, just crash
+        }
+    }
+
     void draw_game_display(std::vector<std::vector<GameObjectColor>> *game_display)
     {
         int width = game_display->size();
@@ -1202,10 +1355,10 @@ private:
 
                     auto object_color = game_display->at(x).at(curr_height);
                     // object_color comes in as a byte from 0-255, but we need it to be 0-1,
-                    // then boost it by 0.5 so that it is not so dark
-                    float r = (object_color.r / 255.0f) + 0.5f;
-                    float g = (object_color.g / 255.0f) + 0.5f;
-                    float b = (object_color.b / 255.0f) + 0.5f;
+
+                    float r = get_imgui_display_color(object_color.r);
+                    float g = get_imgui_display_color(object_color.g);
+                    float b = get_imgui_display_color(object_color.b);
 
                     // Draw a color button
                     ImGui::ColorButton("##color",
